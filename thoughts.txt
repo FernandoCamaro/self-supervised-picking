@@ -1,0 +1,28 @@
+# thoughts
+
+num_iters = 5000
+env = Environment() 
+model = Model()
+replay_buffer = ReplayBuffer()
+trainer = DQNTrainer(model, replay_buffer)
+eps_scheduler = EpsilonScheduler(num_iters)
+logger = Logger(env, model, replay_buffer, trainer, eps_scheduler) # this will also save the checkpoints from time to time
+
+s = env.reset() # 
+for iter in range(num_iters):
+    if env.ok():
+        qsa = model(s) # (1,C, H,W) of q action value functions
+        mask = env.valid()
+        qsa_mask = qsa*mask # environment can mask out invalid actions (for example, no depth)
+        a, greedy = select_action(epsilon, qsa_mask) # (i,j) image coordinates, greedy is a boolean
+        a_for_env = environment_action(a) # returns the 3D coordinate of the point where to perform the suction
+        s_new,r = env.step(a_for_env)
+        transition = (s,a,r,s_new)
+        replay_buffer.insert(transition)
+
+        trainer.update()
+        epsilon = eps_scheduler.get()
+        logger.report(iter, s, qsa, mask, r, a, gready, s_new)
+    else:
+        print("shit happened")
+
