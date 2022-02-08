@@ -4,7 +4,7 @@ import time
 import pickle
 
 from zivid_camera import ZividCamera
-from robot import Robot
+from robot_no_urx import Robot
 
 import pdb
 
@@ -33,8 +33,8 @@ class Environment():
     
     def _state(self):
         self.rgba, self.xyz, self.depth = self.camera.capture()
-        state = np.concatenate([self.rgba[...,0:3], self.depth[:,:,np.newaxis]], axis = 2)
         self._ortographic_state()
+        state = np.concatenate([self.color_img, self.height_img[:,:,np.newaxis]], axis = 2)
         return state
 
     def _ortographic_state(self):
@@ -67,13 +67,13 @@ class Environment():
         action is is the coordinates (j,i) of the pixel in which to perform the suction
         """
         j,i = action
-        if self.depth[j,i] == -1:
+        if self.height_img[j,i] < 1e-2:
             # The robot should be in the home position, but maybe I should check again
             state = self._state()
             reward = 0.
             return state, reward
         else:
-            xyz_camera = self.xyz[j,i]*1e-3 # from mm to m.
+            xyz_camera = self.xyz_img[j,i]
             # command the robot to go the grasp point in a perpendicular direction
             xyz_camera_h = np.ones(4)
             xyz_camera_h[0:3] = xyz_camera
@@ -88,11 +88,10 @@ class Environment():
             T[0:3,0:3] = R
             T[0:3, 3] = xyz_robot
             self.robot.go_grasp_and_retrieve(T)
-            time.sleep(3)
-            while(self.robot._rob.is_program_running()):
-                time.sleep(0.01)
+            time.sleep(5)
             self.robot.grasp(False)
             success = self.robot.heard_noise()
+            print(success)
             time.sleep(1.0)
             state = self._state()
             return state, success
@@ -118,7 +117,7 @@ state = env.reset()
 j,i = None, None
 success = None
 # # plt.imshow(state[...,0:3].astype(np.uint8)); plt.show()
-for i in range(5):
+for i in range(10):
     img = state[...,0:3].astype(np.uint8)
     im_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
