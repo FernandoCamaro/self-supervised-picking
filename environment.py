@@ -97,8 +97,9 @@ success = None
 # # plt.imshow(state[...,0:3].astype(np.uint8)); plt.show()
 for i in range(5):
     img = state[...,0:3].astype(np.uint8)
+    im_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    cv2.imshow('image', img)
+    cv2.imshow('image', im_rgb)
     cv2.setMouseCallback('image', click_event)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
