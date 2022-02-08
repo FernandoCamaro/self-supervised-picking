@@ -64,10 +64,14 @@ class Environment():
             R = np.array([[0,1,0],[1.,0,0],[0,0,-1]])
             T[0:3,0:3] = R
             T[0:3, 3] = xyz_robot
-            self.robot.go(T)
-            self.robot.grasp()
-            time.sleep(1)
-            self.robot.go_home()
+            # self.robot.go(T)
+            # self.robot.grasp()
+            # time.sleep(1)
+            # self.robot.go_home()
+            self.robot.go_grasp_and_retrieve(T)
+            time.sleep(3)
+            while(self.robot._rob.is_program_running()):
+                time.sleep(0.01)
             self.robot.grasp(False)
             success = self.robot.heard_noise()
             time.sleep(1.0)
