@@ -10,6 +10,7 @@ import pdb
 class Environment():
     def __init__(self):
         robot_ip = "10.5.25.134"
+        self.min_rob_z = -96e-3
         self.robot = Robot(robot_ip)
         self.camera = ZividCamera()
 
@@ -56,6 +57,8 @@ class Environment():
             xyz_robot_h = self.T_zivid_robot.dot(xyz_camera_h)
             xyz_robot = xyz_robot_h[0:3]
             xyz_robot[2] -= 0.05
+            if xyz_robot[2] < self.min_rob_z:
+                xyz_robot[2] = self.min_rob_z
             print("going to:", xyz_robot)
             T = np.eye(4)
             R = np.array([[0,1,0],[1.,0,0],[0,0,-1]])
