@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import time
+import pickle
 
 from zivid_camera import ZividCamera
 from robot import Robot
@@ -14,9 +15,14 @@ class Environment():
         self.robot = Robot(robot_ip)
         self.camera = ZividCamera()
 
-        Twz = np.loadtxt("transfroms/T_zivid_to_world.npy")
-        Trw = np.loadtxt("transfroms/T_world_to_robot.npy")
+        Twz = np.loadtxt("transforms/T_zivid_to_world.txt")
+        Trw = np.loadtxt("transforms/T_world_to_robot.txt")
         self.T_zivid_robot = Trw.dot(Twz)
+
+        with open('transforms/bucket.pkl','rb') as f:
+            self.bucket = pickle.load(f)
+            self.Trb = self.bucket["T_rb"]
+            self.Tbc = (np.linalg.inv(self.Trb)).dot(self.T_zivid_robot)
 
 
     def reset(self):
@@ -28,7 +34,30 @@ class Environment():
     def _state(self):
         self.rgba, self.xyz, self.depth = self.camera.capture()
         state = np.concatenate([self.rgba[...,0:3], self.depth[:,:,np.newaxis]], axis = 2)
+        self._ortographic_state()
         return state
+
+    def _ortographic_state(self):
+        valid = self.depth > 0
+        xyz = self.xyz[valid]*1e-3 # -1, 3
+        rgba = self.rgba[valid]
+        N, _ = xyz.shape
+        xyz_hc = np.concatenate([xyz,np.ones((N, 1))], axis=1).T # 4, -1
+        xyz_hb = self.Tbc.dot(xyz_hc) # homogeneous points in bucket frame
+        width = self.bucket['width']
+        pixels = 256
+        self.height_img = np.ones((pixels, pixels))*-0.01
+        self.color_img = np.zeros((pixels, pixels, 3), dtype=np.uint8)
+        self.xyz_img = np.zeros((pixels, pixels, 3))
+        for i, p in enumerate(xyz_hb.T):
+            x, y, z = p[0], p[1], p[2]
+            v = np.int(x*(pixels-1)/width)
+            u = np.int(y*(pixels-1)/width)
+            if u>0 and u<pixels and v>0 and v<pixels:
+                if z > self.height_img[v,u]:
+                    self.height_img[v,u] = z
+                    self.color_img[v,u] = rgba[i,0:3]
+                    self.xyz_img[v,u] = xyz[i]
 
     def valid(self):
         return self.depth > 0.
@@ -58,10 +87,6 @@ class Environment():
             R = np.array([[0,1,0],[1.,0,0],[0,0,-1]])
             T[0:3,0:3] = R
             T[0:3, 3] = xyz_robot
-            # self.robot.go(T)
-            # self.robot.grasp()
-            # time.sleep(1)
-            # self.robot.go_home()
             self.robot.go_grasp_and_retrieve(T)
             time.sleep(3)
             while(self.robot._rob.is_program_running()):
