@@ -80,7 +80,7 @@ class Environment():
             T[0:3,0:3] = R
             T[0:3, 3] = xyz_robot
             self.robot.go_grasp_and_retrieve(T, self.bin_home, self.drop)
-            time.sleep(7)
+            time.sleep(9)
             self.robot.grasp(False)
             success = self.robot.heard_noise()
             print(success)
