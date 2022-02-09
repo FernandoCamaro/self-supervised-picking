@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import time
-import pickle
 
 from zivid_camera import ZividCamera
 from robot_no_urx import Robot
@@ -19,10 +18,10 @@ class Environment():
         Trw = np.loadtxt("transforms/T_world_to_robot.txt")
         self.T_zivid_robot = Trw.dot(Twz)
 
-        self.right_coord = [1085,447]
-        self.left_coord = [255,447]
-        self.right_home = np.array([-468, -159, 178])*1e-3
-        self.left_home = np.array([-468, 191, 178])*1e-3
+        self.right_coord = [1055,251]
+        self.left_coord = [83,251]
+        self.right_home = np.array([-462, -312, 161])*1e-3
+        self.left_home = np.array([-462, 259, 161])*1e-3
 
         self.current_bin = "right"
         self.counter = 1
@@ -48,9 +47,9 @@ class Environment():
             u,v = self.left_coord
             self.bin_home = self.left_home
             self.drop = self.right_home
-        self.rgba = self.rgba[v:v+512,u:u+512]
-        self.xyz = self.xyz[v:v+512,u:u+512]
-        self.depth = self.depth[v:v+512,u:u+512]
+        self.rgba = self.rgba[v:v+800,u:u+800]
+        self.xyz = self.xyz[v:v+800,u:u+800]
+        self.depth = self.depth[v:v+800,u:u+800]
 
     def valid(self):
         return self.depth > 0.
