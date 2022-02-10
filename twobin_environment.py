@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import time
+from PIL import Image
 
 from zivid_camera import ZividCamera
 from robot_no_urx import Robot
@@ -26,6 +27,9 @@ class Environment():
         self.current_bin = "right"
         self.counter = 1
 
+        valid_img = Image.open('misc/valid.png')
+        self.valid_img = np.array(valid_img)[:,:,0]
+
     def reset(self):
         # TODO: move the robot to home position
         # TODO: I would like to handle two bins
@@ -50,19 +54,18 @@ class Environment():
         self.rgba = self.rgba[v:v+800,u:u+800]
         self.xyz = self.xyz[v:v+800,u:u+800]
         self.depth = self.depth[v:v+800,u:u+800]
-
-    def valid(self):
-        return self.depth > 0.
+        self.valid = self.valid_img[v:v+800,u:u+800]
+        self.valid = (self.valid == 255) * (self.depth > 0.7)
 
     def step(self, action):
         """
         action is is the coordinates (j,i) of the pixel in which to perform the suction
         """
         j,i = action
-        if self.depth[j,i] < 1e-2:
+        if ~self.valid[j,i]:
             # The robot should be in the home position, but maybe I should check again
             state = self._state()
-            reward = 0.
+            reward = False
             return state, reward
         else:
             xyz_camera = self.xyz[j,i]*1e-3
@@ -96,32 +99,3 @@ class Environment():
 
     def close(self):
         self.robot.close()
-
-
-import matplotlib.pyplot as plt
-from PIL import Image
-
-def click_event(event, x, y, flags, params):
-    global j,i
-    # checking for left mouse clicks
-    if event == cv2.EVENT_LBUTTONDOWN:
-        # print("click on:", y, x)
-        j,i = y, x
-        
-
-env = Environment()
-state = env.reset()
-j,i = 0, 0
-success = None
-# # plt.imshow(state[...,0:3].astype(np.uint8)); plt.show()
-for i in range(10):
-    img = state[...,0:3].astype(np.uint8)
-    im_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-    cv2.imshow('image', im_rgb)
-    cv2.setMouseCallback('image', click_event)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    state, success = env.step([j,i])
-    print("success:", success)
-    img = state[...,0:3].astype(np.uint8)
