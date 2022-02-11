@@ -15,7 +15,7 @@ class MockupEnvironment():
         return valid_array.reshape(-1)
     
     def _new_state(self):
-        rgb = np.zeros((self.H, self.W, 3))
+        rgb = np.zeros((self.H, self.W, 3), dtype=np.float32)
         for i in range(self.num_blocks):
             j = np.random.randint(self.H)
             i = np.random.randint(self.W)
