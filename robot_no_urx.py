@@ -50,19 +50,19 @@ class Robot():
         cmd_lines = [
             "def process():",
             " global graspoint_p=p[%f,%f,%f,%f,%f,%f]" % (p_grasp[0], p_grasp[1], p_grasp[2], o_grasp[0], o_grasp[1], o_grasp[2]),
-            " global pre_graspoint_p=p[%f,%f,%f,%f,%f,%f]" % (p_grasp[0], p_grasp[1], p_grasp[2]+0.1, o_grasp[0], o_grasp[1], o_grasp[2]),
+            " global pre_graspoint_p=p[%f,%f,%f,%f,%f,%f]" % (p_grasp[0], p_grasp[1], p_grasp[2]+0.085, o_grasp[0], o_grasp[1], o_grasp[2]),
             " global bin_p=p[%f,%f,%f,%f,%f,%f]" % (bin[0], bin[1], bin[2], o_grasp[0], o_grasp[1], o_grasp[2]),
             " global drop_p=p[%f,%f,%f,%f,%f,%f]" % (drop[0], drop[1], drop[2], o_grasp[0], o_grasp[1], o_grasp[2]),
             " global move_thread_flag_7=0",
             " thread move_thread_7():",
             "   enter_critical",
             "   move_thread_flag_7 = 1",
-            "   movel(pre_graspoint_p, a=1.2, v=0.25)",
-            "   movel(graspoint_p, a=1.2, v=0.25)",
+            "   movel(pre_graspoint_p, a=1.2, v=0.9)",
+            "   movel(graspoint_p, a=1.2, v=0.9)",
             "   move_thread_flag_7 = 2",
             "   exit_critical",
             " end",
-            " movel(bin_p, a=1.2, v=0.25, r=0.05)",
+            " movel(bin_p, a=1.2, v=0.9)",
             " move_thread_flag_7 = 0",
             " move_thread_han_7 = run move_thread_7()",
             " while (True):",
@@ -80,8 +80,8 @@ class Robot():
             " end",
             " set_analog_out(0,0.3)",
             " sleep(1.)",
-            " movel(bin_p, a=1.2, v=0.25, r=0.05)",
-            " movel(drop_p, a=1.2, v=0.25)",
+            " movel(bin_p, a=1.2, v=0.9, r=0.05)",
+            " movel(drop_p, a=1.2, v=0.9)",
             "end"]
         cmd = self._prepare_cmd(cmd_lines)
         self._send_command(cmd)
@@ -92,7 +92,7 @@ class Robot():
         cmd_lines = [
             "def process():",
             " global home_p=p[%f,%f,%f,%f,%f,%f]" % (home[0], home[1], home[2], o_grasp[0], o_grasp[1], o_grasp[2]),
-            " movel(home_p, a=1.2, v=0.25)",
+            " movel(home_p, a=1.2, v=0.9)",
             "end"]
         cmd = self._prepare_cmd(cmd_lines)
         self._send_command(cmd)
