@@ -57,14 +57,15 @@ opt = {}
 opt['display_id'] = 1
 opt['isTrain'] = True 
 opt['no_html'] = False 
-opt['display_winsize'] = 256 
 opt['name'] = "ssp" 
+opt['display_winsize'] = 256 
 opt['display_port'] = 8097 
 opt['display_ncols'] = 4 
+opt['display_freq'] = 1 
 opt['display_server'] = "http://localhost" 
 opt['display_env'] = "main" 
 opt['checkpoints_dir'] = "./checkpoints" 
-opt['update_html_freq'] = "100" 
-opt['print_freq'] = 100 
+opt['update_html_freq'] = "100"
+
 
 opt = Bunch(opt)
