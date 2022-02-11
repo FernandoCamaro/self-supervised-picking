@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from collections import OrderedDict
 
-from mockup_environment import MockupEnvironment
+from twobin_environment import Environment
 from models import Model
 from dqn_traininer import DQNTrainer
 from logger import Logger
@@ -19,7 +19,7 @@ gamma = 0.5
 buffer_capacity = 5000
 
 visualizer = Visualizer(opt)
-env = MockupEnvironment()
+env = Environment()
 max_reward = env.max_reward()
 state = env.reset()
 _, H, W = state.shape
@@ -42,7 +42,7 @@ for step in range(num_steps):
             q = model(state) # [H,W]
             q_s = q.copy()
             state_vis = state.copy()
-            valid = env.valid()
+            valid = env.valid_mask()
             q[~valid] = -np.inf
             a = np.argmax(q)
             

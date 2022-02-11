@@ -10,7 +10,7 @@ class MockupEnvironment():
     def is_ok(self):
         return True
 
-    def valid(self):
+    def valid_mask(self):
         valid_array = np.ones((self.H, self.W), dtype=np.bool)
         return valid_array.reshape(-1)
     

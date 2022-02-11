@@ -23,12 +23,24 @@ class Environment():
         self.left_coord = [83,251]
         self.right_home = np.array([-462, -312, 161])*1e-3
         self.left_home = np.array([-462, 259, 161])*1e-3
+        self.crop_size = 800
+        self.H, self.W = 256, 256
 
         self.current_bin = "right"
         self.counter = 1
 
         valid_img = Image.open('misc/valid.png')
         self.valid_img = np.array(valid_img)[:,:,0]
+
+    def is_ok(self):
+        return True
+
+    def valid_mask(self):
+        valid_array = np.ones((self.H, self.W), dtype=np.bool)
+        return valid_array.reshape(-1)
+
+    def max_reward(self):
+        return 1.
 
     def reset(self):
         # TODO: move the robot to home position
@@ -39,7 +51,8 @@ class Environment():
     def _state(self):
         self.rgba, self.xyz, self.depth = self.camera.capture()
         self._particularize_for_current_bin()
-        state = np.concatenate([self.rgba[...,0:3], self.depth[:,:,np.newaxis]], axis = 2)
+        # state = np.concatenate([self.rgba[...,0:3], self.depth[:,:,np.newaxis]], axis = 2)
+        state = self.rgba[...,0:3].transpose(2,0,1)/255.
         return state
 
     def _particularize_for_current_bin(self):
@@ -51,17 +64,25 @@ class Environment():
             u,v = self.left_coord
             self.bin_home = self.left_home
             self.drop = self.right_home
-        self.rgba = self.rgba[v:v+800,u:u+800]
-        self.xyz = self.xyz[v:v+800,u:u+800]
-        self.depth = self.depth[v:v+800,u:u+800]
-        self.valid = self.valid_img[v:v+800,u:u+800]
+        self.rgba = self.rgba[v:v+self.crop_size,u:u+self.crop_size]
+        self.xyz = self.xyz[v:v+self.crop_size,u:u+self.crop_size]
+        self.depth = self.depth[v:v+self.crop_size,u:u+self.crop_size]
+        self.valid = self.valid_img[v:v+self.crop_size,u:u+self.crop_size]
         self.valid = (self.valid == 255) * (self.depth > 0.7)
+
+        self.rgba = cv2.resize(self.rgba, [self.W, self.H])
+        self.xyz = cv2.resize(self.xyz, [self.W, self.H], interpolation=cv2.INTER_NEAREST)
+        self.depth = cv2.resize(self.depth, [self.W, self.H], interpolation=cv2.INTER_NEAREST)
+        valid = self.valid*1.0
+        valid = cv2.resize(valid, [self.W, self.H], interpolation=cv2.INTER_NEAREST)
+        self.valid = valid == 1.0
 
     def step(self, action):
         """
         action is is the coordinates (j,i) of the pixel in which to perform the suction
         """
-        j,i = action
+        j = int(action / self.W)
+        i = int(action % self.W) 
         if ~self.valid[j,i]:
             # The robot should be in the home position, but maybe I should check again
             state = self._state()
@@ -77,16 +98,14 @@ class Environment():
             xyz_robot[2] -= 0.05
             if xyz_robot[2] < self.min_rob_z:
                 xyz_robot[2] = self.min_rob_z
-            print("going to:", xyz_robot)
             T = np.eye(4)
             R = np.array([[0,1,0],[1.,0,0],[0,0,-1]])
             T[0:3,0:3] = R
             T[0:3, 3] = xyz_robot
             self.robot.go_grasp_and_retrieve(T, self.bin_home, self.drop)
-            time.sleep(9)
+            time.sleep(7)
             self.robot.grasp(False)
-            success = self.robot.heard_noise()
-            print(success)
+            reward = 1.0 if self.robot.heard_noise() else 0.
             self.robot.move_home(T)
             time.sleep(2.0)
             state = self._state()
@@ -94,8 +113,11 @@ class Environment():
             if self.counter == 2:
                 self.counter = 1
                 self.current_bin = "right" if self.current_bin == "left" else "left"
-            return state, success
+            return state, reward
 
+    def sample_action(self):
+        a = np.random.randint(self.H*self.W)
+        return a
 
     def close(self):
         self.robot.close()
