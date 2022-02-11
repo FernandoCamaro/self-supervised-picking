@@ -11,8 +11,9 @@ from utils import Transition
 
 
 BATCH_SIZE = 8
-TARGET_UPDATE = 250
+TARGET_UPDATE = 50
 LR = 1e-3
+GRADIENT_STEPS_PER_UPDATE = 2
 
 class DQNTrainer():
     def __init__(self, policy_net, replay_buffer, gamma):
@@ -42,44 +43,44 @@ class DQNTrainer():
             return
         else:
             device = self.policy_net.device
-            transitions = self.buffer.sample(BATCH_SIZE)
-            # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-            # detailed explanation). This converts batch-array of Transitions
-            # to Transition of batch-arrays.
-            batch = Transition(*zip(*transitions))
+            for _ in range(GRADIENT_STEPS_PER_UPDATE):
+                transitions = self.buffer.sample(BATCH_SIZE)
+                # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+                # detailed explanation). This converts batch-array of Transitions
+                # to Transition of batch-arrays.
+                batch = Transition(*zip(*transitions))
 
-            state_batch = torch.cat(batch.state)
-            action_batch = torch.cat(batch.action)
-            reward_batch = torch.cat(batch.reward)
-            next_states = torch.cat([s for s in batch.next_state
-                                                if s is not None])
+                state_batch = torch.cat(batch.state)
+                action_batch = torch.cat(batch.action)
+                reward_batch = torch.cat(batch.reward)
+                next_states = torch.cat(batch.next_state)
 
-            # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-            # columns of actions taken. These are the actions which would've been taken
-            # for each batch state according to policy_net
-            state_action_values = self.policy_net(state_batch).gather(1, action_batch.to(device))
+                # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+                # columns of actions taken. These are the actions which would've been taken
+                # for each batch state according to policy_net
+                state_action_values = self.policy_net(state_batch).gather(1, action_batch.to(device))
 
-            # Compute V(s_{t+1}) for all next states.
-            # Expected values of actions for non_final_next_states are computed based
-            # on the "older" target_net; selecting their best reward with max(1)[0].
-            # This is merged based on the mask, such that we'll have either the expected
-            # state value or 0 in case the state was final.
-            next_state_values = self.target_net(next_states).max(1)[0].detach()
-            # Compute the expected Q values
-            expected_state_action_values = (next_state_values * self.gamma) + reward_batch.to(device)
+                # Compute V(s_{t+1}) for all next states.
+                # Expected values of actions for non_final_next_states are computed based
+                # on the "older" target_net; selecting their best reward with max(1)[0].
+                # This is merged based on the mask, such that we'll have either the expected
+                # state value or 0 in case the state was final.
+                next_state_values = self.target_net(next_states).max(1)[0].detach().unsqueeze(1)
+                # Compute the expected Q values
+                expected_state_action_values = (next_state_values * self.gamma) + reward_batch.to(device)
 
-            # Compute Huber loss
-            # self.td_error = (state_action_values - expected_state_action_values.unsqueeze(1)).abs().mean().item()
-            loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
-            self.loss = loss.item()
-            # print("loss:", loss.item())
+                # Compute Huber loss
+                self.td_error = (state_action_values - expected_state_action_values).abs().mean().item()
+                loss = self.criterion(state_action_values, expected_state_action_values)
+                self.loss = loss.item()
+                # print("loss:", loss.item())
 
-            # Optimize the model
-            self.optimizer.zero_grad()
-            loss.backward()
-            for param in self.policy_net.parameters():
-                param.grad.data.clamp_(-1, 1)
-            self.optimizer.step()
+                # Optimize the model
+                self.optimizer.zero_grad()
+                loss.backward()
+                for param in self.policy_net.parameters():
+                    param.grad.data.clamp_(-1, 1)
+                self.optimizer.step()
 
             # Update the target network, copying all weights and biases in DQN
             if self.num_updates % TARGET_UPDATE == 0:
