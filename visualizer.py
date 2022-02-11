@@ -102,7 +102,7 @@ class Visualizer():
             ncols = self.ncols
             if ncols > 0:        # show all the images in one visdom panel
                 ncols = min(ncols, len(visuals))
-                h, w = next(iter(visuals.values())).shape[:2]
+                _, h, w = next(iter(visuals.values())).shape
                 table_css = """<style>
                         table {border-collapse: separate; border-spacing: 4px; white-space: nowrap; text-align: center}
                         table td {width: % dpx; height: % dpx; padding: 4px; outline: 4px solid black}
@@ -114,14 +114,14 @@ class Visualizer():
                 images = []
                 idx = 0
                 for label, image in visuals.items():
-                    image_numpy = util.tensor2im(image)
+                    image_numpy = image
                     label_html_row += '<td>%s</td>' % label
-                    images.append(image_numpy.transpose([2, 0, 1]))
+                    images.append(image_numpy)
                     idx += 1
                     if idx % ncols == 0:
                         label_html += '<tr>%s</tr>' % label_html_row
                         label_html_row = ''
-                white_image = np.ones_like(image_numpy.transpose([2, 0, 1])) * 255
+                white_image = np.ones_like(image_numpy) * 255
                 while idx % ncols != 0:
                     images.append(white_image)
                     label_html_row += '<td></td>'
@@ -152,7 +152,7 @@ class Visualizer():
             self.saved = True
             # save images to the disk
             for label, image in visuals.items():
-                image_numpy = util.tensor2im(image)
+                image_numpy = util.tensor2im(image).transpose(1,2,0)
                 img_path = os.path.join(self.img_dir, 'epoch%.3d_%s.png' % (epoch, label))
                 util.save_image(image_numpy, img_path)
 
@@ -171,16 +171,15 @@ class Visualizer():
                 webpage.add_images(ims, txts, links, width=self.win_size)
             webpage.save()
 
-    def plot_current_losses(self, epoch, counter_ratio, losses):
+    def plot_current_losses(self, step, losses):
         """display the current losses on visdom display: dictionary of error labels and values
         Parameters:
-            epoch (int)           -- current epoch
-            counter_ratio (float) -- progress (percentage) in the current epoch, between 0 to 1
+            step (int)           -- current step
             losses (OrderedDict)  -- training losses stored in the format of (name, float) pairs
         """
         if not hasattr(self, 'plot_data'):
             self.plot_data = {'X': [], 'Y': [], 'legend': list(losses.keys())}
-        self.plot_data['X'].append(epoch + counter_ratio)
+        self.plot_data['X'].append(step)
         self.plot_data['Y'].append([losses[k] for k in self.plot_data['legend']])
         try:
             X = np.array(self.plot_data['X'])
@@ -191,7 +190,7 @@ class Visualizer():
                 opts={
                     'title': self.name + ' loss over time',
                     'legend': self.plot_data['legend'],
-                    'xlabel': 'epoch',
+                    'xlabel': 'step',
                     'ylabel': 'loss'},
                 win=self.display_id)
         except VisdomExceptionBase:
