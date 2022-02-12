@@ -26,6 +26,7 @@ _, H, W = state.shape
 device = torch.device("cuda:0")
 model = Model(gamma, max_reward)
 model.to(device)
+model.load_state_dict(torch.load("/home/fernando/git/self-supervised-picking/checkpoints/ssp/checkpoint.pt"))
 replay_buffer = ReplayBuffer(buffer_capacity)
 trainer = DQNTrainer(model, replay_buffer, gamma)
 eps_sch = EpsilonScheduler(initial_epsilon, final_epsilon, num_steps)
