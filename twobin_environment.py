@@ -29,7 +29,7 @@ class Environment():
         self.current_bin = "right"
         self.counter = 1
 
-        valid_img = Image.open('misc/valid.png')
+        valid_img = Image.open('misc/valid_new.png')
         self.valid_img = np.array(valid_img)[:,:,0]
 
     def is_ok(self):
@@ -110,7 +110,7 @@ class Environment():
             time.sleep(2.0)
             state = self._state()
             self.counter += 1
-            if self.counter == 2:
+            if self.counter == 6:
                 self.counter = 1
                 self.current_bin = "right" if self.current_bin == "left" else "left"
             return state, reward
