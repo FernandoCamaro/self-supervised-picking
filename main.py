@@ -24,6 +24,7 @@ max_reward = env.max_reward()
 state = env.reset()
 _, H, W = state.shape
 device = torch.device("cuda:0")
+# model = torch.load("/home/fernando/git/self-supervised-picking/checkpoints/ssp/checkpoint2.pt")
 model = Model(gamma, max_reward)
 model.to(device)
 model.load_state_dict(torch.load("/home/fernando/git/self-supervised-picking/checkpoints/ssp/checkpoint.pt"))
